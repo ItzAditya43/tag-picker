@@ -84,7 +84,7 @@ labelled `role="group"` inside the listbox, so screen readers announce the group
   that option.
 - **Undo restores the exact previous list.** Before, Undo re-added the tag at its alphabetical spot. With reordering,
   that would lose the position, so Undo now returns the whole list as it was.
-- **One new runtime dependency (dnd-kit, about 15 KB gzipped).** Writing accessible drag and drop by hand would be more
+- **One new runtime dependency (dnd-kit).** All of round 2 together adds about 16 KB gzipped to the page (75 KB to 92 KB), most of it dnd-kit. Writing accessible drag and drop by hand would be more
   code and more risk.
 - **Typo matching is my own small function, not a fuzzy-search library.** The catalogue is small, the rules fit in one
   function, and they're easy to test and tune.
