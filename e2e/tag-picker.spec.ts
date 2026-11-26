@@ -86,6 +86,31 @@ test.describe("keyboard", () => {
     await expect(input(page)).toBeFocused();
   });
 
+  test("keyboard moves go one place at a time, even when tags wrap onto several rows", async ({ page }) => {
+    for (const tag of ["JavaScript", "Information architecture", "Interaction design", "Usability testing", "Adobe Illustrator"]) {
+      await input(page).fill(tag);
+      await input(page).press("Enter");
+    }
+    const move = async (name: string, keys: string[]) => {
+      await handle(page, name).focus();
+      await page.keyboard.press("Space");
+      for (const key of keys) await page.keyboard.press(key);
+      await page.keyboard.press("Space");
+    };
+    await move("JavaScript", ["ArrowLeft", "ArrowLeft"]);
+    await expect.poll(() => chipNames(page)).toEqual(
+      ["JavaScript", "Figma", "React", "Information architecture", "Interaction design", "Usability testing", "Adobe Illustrator"]);
+    await move("Usability testing", ["ArrowUp"]); // ↑ = one place earlier, not "the tag above on screen"
+    await expect.poll(() => chipNames(page)).toEqual(
+      ["JavaScript", "Figma", "React", "Information architecture", "Usability testing", "Interaction design", "Adobe Illustrator"]);
+    await move("Figma", ["ArrowDown", "ArrowRight"]);
+    await expect.poll(() => chipNames(page)).toEqual(
+      ["JavaScript", "React", "Information architecture", "Figma", "Usability testing", "Interaction design", "Adobe Illustrator"]);
+    await move("JavaScript", ["ArrowLeft"]); // already first: stays
+    await expect.poll(() => chipNames(page)).toEqual(
+      ["JavaScript", "React", "Information architecture", "Figma", "Usability testing", "Interaction design", "Adobe Illustrator"]);
+  });
+
   test("Escape cancels a keyboard move", async ({ page }) => {
     await handle(page, "Figma").focus();
     await page.keyboard.press("Space");
@@ -164,7 +189,7 @@ test("tags that would not fit are disabled, with a reason", async ({ page }) => 
   await input(page).press("Enter");
   await input(page).fill("z".repeat(29));
   await input(page).press("Enter");
-  await expect(page.getByText("1 characters left")).toBeVisible();
+  await expect(page.getByText("1 character left")).toBeVisible();
   const css = page.getByRole("button", { name: "CSS", exact: true }).last();
   await expect(css).toHaveAttribute("aria-disabled", "true");
   await expect(css).toHaveAttribute("title", "Too long for the characters left");

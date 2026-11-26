@@ -4,9 +4,10 @@ import {
   DndContext, KeyboardSensor, MouseSensor, TouchSensor, closestCenter, useSensor, useSensors,
   type Announcements, type DragEndEvent,
 } from "@dnd-kit/core";
-import { SortableContext, rectSortingStrategy, sortableKeyboardCoordinates } from "@dnd-kit/sortable";
+import { SortableContext, rectSortingStrategy } from "@dnd-kit/sortable";
 import { cn } from "./lib/cn";
 import { SortableChip } from "./SortableChip";
+import { listOrderCoordinates } from "./lib/listKeyboard";
 import {
   buildSuggestions, describePlan, moveItem, planAdditions, recommendTags, splitTagList, tagCharCount, tagSlug,
   type Suggestion, type TagOption, type TagRecommendations,
@@ -198,11 +199,11 @@ export function TagPicker({
   const optionId = (i: number) => `${listboxId}-opt-${i}`;
 
   // Drag to reorder: mouse after 5px of movement (so clicks still click), touch after a short press
-  // (so the page still scrolls), keyboard with Space then arrow keys.
+  // (so the page still scrolls), keyboard with Space then arrow keys (one place per press, see listKeyboard.ts).
   const sensors = useSensors(
     useSensor(MouseSensor, { activationConstraint: { distance: 5 } }),
     useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 6 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+    useSensor(KeyboardSensor, { coordinateGetter: listOrderCoordinates }),
   );
   const position = (id: unknown) => `position ${selected.indexOf(String(id)) + 1} of ${selected.length}`;
   const announcements: Announcements = {
@@ -400,7 +401,7 @@ export function TagPicker({
                   )}
                 </span>
               ) : armed ? "Press Backspace again to remove the last tag."
-                : `${Math.max(0, maxChars - charCount)} characters left`}
+                : `${Math.max(0, maxChars - charCount)} ${maxChars - charCount === 1 ? "character" : "characters"} left`}
             </span>
             <span className="ml-auto flex shrink-0 items-center gap-3">
               {selected.length > 1 && !isSorted && (
