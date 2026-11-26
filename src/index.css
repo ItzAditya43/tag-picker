@@ -9,7 +9,7 @@
   --foreground: #1b1b1f;
   --muted: #3a3a40;
   --muted-2: #55555c;
-  --primary: #2f6fed;
+  --primary: #245fd6; /* 4.8:1 on --primary-soft, AA for small text (was #2f6fed, 3.8:1) */
   --primary-soft: #e3ecfd;
   --danger: #c0392b;
   --warning: #b7791f;

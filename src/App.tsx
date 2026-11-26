@@ -43,7 +43,7 @@ export default function App() {
 
       <section className="rounded-lg border border-border bg-surface p-5">
         <h2 className="mb-1 text-base font-semibold">Edit Skills</h2>
-        <p className="mb-4 text-sm text-muted">Pick the skills on your profile. Up to 100 characters in total.</p>
+        <p className="mb-4 text-sm text-muted">Pick the skills on your profile, up to 100 characters in total. Drag to put your main skills first.</p>
         <TagPicker
           options={SKILLS}
           searchOptions={MORE_SKILLS}
