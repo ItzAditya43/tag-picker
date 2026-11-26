@@ -70,6 +70,31 @@ test.describe("keyboard", () => {
     await expect.poll(() => chipNames(page)).toEqual(["React", "Figma"]);
   });
 
+  test("removing a tag with × keeps focus in the picker", async ({ page }) => {
+    await page.getByRole("button", { name: "Remove Figma" }).focus();
+    await page.keyboard.press("Enter");
+    await expect(page.getByRole("button", { name: "Remove React" })).toBeFocused();
+    await page.keyboard.press("Enter");
+    await expect(input(page)).toBeFocused();
+  });
+
+  test("Sort A–Z keeps focus in the picker", async ({ page }) => {
+    await input(page).fill("CSS");
+    await input(page).press("Enter");
+    await page.getByRole("button", { name: "Sort A–Z" }).focus();
+    await page.keyboard.press("Enter");
+    await expect(input(page)).toBeFocused();
+  });
+
+  test("Escape cancels a keyboard move", async ({ page }) => {
+    await handle(page, "Figma").focus();
+    await page.keyboard.press("Space");
+    await page.keyboard.press("ArrowRight");
+    await page.keyboard.press("Escape");
+    await expect.poll(() => chipNames(page)).toEqual(["Figma", "React"]);
+    await expect(page.getByText("Moving cancelled. Figma stays at position 1 of 2.")).toBeAttached();
+  });
+
   test("Escape clears the text, then closes", async ({ page }) => {
     await input(page).fill("fig");
     await expect(page.getByRole("listbox")).toBeVisible();

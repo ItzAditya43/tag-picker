@@ -1,12 +1,12 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
-import { ArrowDownAZ, Check, GripVertical, Plus, Search, Undo2, X } from "lucide-react";
+import { ArrowDownAZ, Check, Plus, Search, Undo2 } from "lucide-react";
 import {
   DndContext, KeyboardSensor, MouseSensor, TouchSensor, closestCenter, useSensor, useSensors,
   type Announcements, type DragEndEvent,
 } from "@dnd-kit/core";
-import { SortableContext, rectSortingStrategy, sortableKeyboardCoordinates, useSortable } from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
+import { SortableContext, rectSortingStrategy, sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { cn } from "./lib/cn";
+import { SortableChip } from "./SortableChip";
 import {
   buildSuggestions, describePlan, moveItem, planAdditions, recommendTags, splitTagList, tagCharCount, tagSlug,
   type Suggestion, type TagOption, type TagRecommendations,
@@ -34,46 +34,6 @@ const NOTICE_MS = 6000;
 
 /** A message under the box. `undoTo` is the list to go back to, if the action can be undone. */
 type Notice = { text: string; tone: "info" | "error"; undoTo?: string[] };
-
-/** One selected tag. The label part is the drag handle; the × is a separate button. */
-function SortableChip({ id, label, marked, onRemove }: {
-  id: string;
-  label: string;
-  marked: boolean;
-  onRemove: () => void;
-}) {
-  const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({ id });
-  return (
-    <span
-      ref={setNodeRef}
-      style={{ transform: CSS.Translate.toString(transform), transition }}
-      className={cn(
-        "group inline-flex items-center rounded-full border border-primary/30 bg-primary-soft text-sm font-medium text-primary",
-        marked && "ring-2 ring-danger",
-        isDragging && "relative z-10 shadow-lg ring-2 ring-primary",
-      )}
-    >
-      <span
-        ref={setActivatorNodeRef}
-        {...attributes}
-        {...listeners}
-        onClick={(event) => event.stopPropagation()}
-        className="inline-flex min-h-9 cursor-grab touch-manipulation items-center gap-1 rounded-full py-1 pl-1.5 pr-1 outline-none focus-visible:ring-2 focus-visible:ring-primary active:cursor-grabbing sm:min-h-0"
-      >
-        <GripVertical className="h-3.5 w-3.5 text-primary/40 group-hover:text-primary/70" aria-hidden />
-        {label}
-      </span>
-      <button
-        type="button"
-        onClick={(event) => { event.stopPropagation(); onRemove(); }}
-        aria-label={`Remove ${label}`}
-        className="mr-1 inline-flex h-6 w-6 items-center justify-center rounded-full text-primary/70 hover:bg-primary/10 hover:text-primary"
-      >
-        <X className="h-3 w-3" aria-hidden />
-      </button>
-    </span>
-  );
-}
 
 export function TagPicker({
   options,
@@ -134,6 +94,9 @@ export function TagPicker({
   // Read out by screen readers. The flip makes a repeated message ("Added React" twice) be read again.
   const [announce, setAnnounce] = useState({ text: "", flip: false });
   const inputRef = useRef<HTMLInputElement>(null);
+  const boxRef = useRef<HTMLDivElement>(null);
+  // Where keyboard focus should go after the next render, when the focused button is about to disappear.
+  const [focusAfter, setFocusAfter] = useState<{ removeAt: number } | "input" | null>(null);
   const listboxId = useId();
   const statusId = useId();
   const selected = value ?? internal;
@@ -143,6 +106,16 @@ export function TagPicker({
     const timer = setTimeout(() => setNotice(null), NOTICE_MS);
     return () => clearTimeout(timer);
   }, [notice, noticeHeld]);
+
+  // Removing a tag with × (or sorting) deletes the button that had focus. Without this, focus falls back to
+  // the top of the page and a keyboard user has to tab all the way back.
+  useEffect(() => {
+    if (!focusAfter) return;
+    const removeButtons = boxRef.current?.querySelectorAll<HTMLButtonElement>("[data-remove]") ?? [];
+    const next = focusAfter === "input" ? null : removeButtons[Math.min(focusAfter.removeAt, removeButtons.length - 1)];
+    (next ?? inputRef.current)?.focus();
+    setFocusAfter(null);
+  }, [focusAfter]);
 
   const say = (text: string) => setAnnounce((a) => ({ text, flip: !a.flip }));
   const labelFor = (tag: string) => searchable.find((option) => option.value === tag)?.label ?? tag;
@@ -251,6 +224,7 @@ export function TagPicker({
   const sortAZ = () => {
     const before = selected;
     commit(sortedAZ);
+    setFocusAfter("input");
     setNotice({ text: "Sorted A–Z.", tone: "info", undoTo: before });
     say("Sorted A to Z. Undo is available");
   };
@@ -313,6 +287,7 @@ export function TagPicker({
       <div aria-live="polite" className="sr-only">{announce.text}{announce.flip ? " " : ""}</div>
 
       <div
+        ref={boxRef}
         className="flex cursor-text flex-wrap items-center gap-2 rounded-lg border border-border bg-surface px-2.5 py-2 transition-shadow focus-within:border-primary focus-within:ring-3 focus-within:ring-primary/15"
         onClick={() => inputRef.current?.focus()}
       >
@@ -334,7 +309,7 @@ export function TagPicker({
                 id={tag}
                 label={labelFor(tag)}
                 marked={armed && i === selected.length - 1}
-                onRemove={() => remove(tag)}
+                onRemove={() => { remove(tag); setFocusAfter({ removeAt: i }); }}
               />
             ))}
           </SortableContext>

@@ -7,6 +7,8 @@ const executablePath = process.env.CHROMIUM_PATH || undefined;
 export default defineConfig({
   testDir: "e2e",
   fullyParallel: true,
+  // A few workers at most: on a busy laptop, many browsers at once make timing-based tests flaky.
+  workers: process.env.CI ? 2 : 3,
   reporter: "list",
   use: { baseURL: "http://localhost:5179", trace: "retain-on-failure" },
   webServer: {
