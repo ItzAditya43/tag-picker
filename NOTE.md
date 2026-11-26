@@ -4,6 +4,8 @@ Round 1 ended with a "what I'd do with more time" list. This round builds every 
 three accessibility bugs I found while doing it (two of them were already in round 1). The round 1 note is at the
 bottom, unchanged.
 
+**Live demo: https://itzaditya43.github.io/tag-picker/** · Code: https://github.com/ItzAditya43/tag-picker
+
 ![30-second demo: typo correction, grouped results, pasting a list, drag and keyboard reordering, Undo, Sort A–Z](docs/demo.gif)
 
 | Round 1 promise | What I built | How it's checked |

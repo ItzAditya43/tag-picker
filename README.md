@@ -1,20 +1,32 @@
-## Your Task
+# Tag Picker
 
-Make this tag picker better.
+A skills tag picker for a profile form: search with typo tolerance, grouped results, paste a whole list, drag (or
+keyboard) to reorder, a character budget, Undo, light and dark themes. Built for a design exercise; round 2 of the
+review.
 
-- Change the look, the feel, or how it works. It is up to you.
-- Add anything you think a great tag picker needs.
-- Keep it working on a phone and on a computer.
+**Live demo: https://itzaditya43.github.io/tag-picker/**
 
-There is no single right answer. We want to see how you think.
+![Demo: typo correction, grouped results, pasting a list, drag and keyboard reordering, Undo, Sort A–Z](docs/demo.gif)
 
-## What to Send Back
+## Run it
 
-1. Your code as a zip file or a link to a repo. Leave out `node_modules`.
-2. A note :
-   - What you changed.
-   - Why you changed it.
-   - What you would do with more time.
+```
+npm install
+npm run dev
+```
 
-Put your note in a file called `NOTE.md`.
-It must still run with `npm install` and `npm run dev`.
+## Tests
+
+```
+npm test                                   # 50 unit tests (Vitest)
+npx playwright install chromium            # once
+npm run test:e2e                           # 21 browser tests on desktop and phone, with axe accessibility scans
+```
+
+## Read next
+
+- [NOTE.md](NOTE.md): what was built in round 2, how to review it in 5 minutes, decisions and trade-offs.
+- [TASK.md](TASK.md): the original exercise.
+
+Code: the logic is in [`src/lib/tags.ts`](src/lib/tags.ts) (no React, fully unit-tested); the UI is in
+[`src/TagPicker.tsx`](src/TagPicker.tsx) and [`src/SortableChip.tsx`](src/SortableChip.tsx).
