@@ -1,7 +1,7 @@
 # Tag picker, round 2
 
 Round 1 ended with a "what I'd do with more time" list. This round builds every item on it, tests each one, and fixes
-three accessibility bugs I found while doing it (two of them were already in round 1). The round 1 note is at the
+four accessibility bugs I found while doing it (two of them were already in round 1). The round 1 note is at the
 bottom, unchanged.
 
 **Live demo: https://itzaditya43.github.io/tag-picker/** · Code: https://github.com/ItzAditya43/tag-picker
@@ -15,7 +15,7 @@ bottom, unchanged.
 | Grouping in search | "In the list", "More skills", "Did you mean", "New tag" | Unit tests and a browser test |
 | Typo matching | "javscript" + Enter adds JavaScript. Unfinished words work too ("javsc") | 15 unit tests, 2 browser tests |
 | Pasting a long list | Adds everything at once. "Added 5 · 1 didn't fit: Adobe Illustrator", with Undo | Unit tests and 2 browser tests |
-| Screen reader pass | axe scans of every main state, plus fixes for contrast, focus loss and keyboard moves | axe in the browser tests; VoiceOver/NVDA not done (see below) |
+| Screen reader pass | axe scans of every main state, plus fixes for contrast, focus loss, keyboard moves and drag announcements | axe in the browser tests; VoiceOver/NVDA not done (see below) |
 
 ## Review it in 5 minutes
 
@@ -101,6 +101,10 @@ labelled `role="group"` inside the listbox, so screen readers announce the group
   AA minimum. I darkened the light-mode blue to `#245fd6` (4.8:1). Dark mode already passed.
 - It also showed that keyboard focus got lost: removing a tag with × (or using Sort A–Z) deleted the focused button, so
   focus fell back to the top of the page. Now focus moves to the next tag's ×, or to the input.
+- And when you picked a tag up with the keyboard, dnd-kit immediately reported it as "over its own spot". That replaced
+  "Picked up Figma, position 1 of 2" before a screen reader could say it. Now only a real change of position is
+  announced. CI caught this: it presses keys faster than a person, and the test that listens for the announcement
+  failed there.
 - Other fixes from this pass:
   - Options inside the dropdown are no longer separate Tab stops, matching the ARIA combobox pattern.
   - The input now reads out the character count.
