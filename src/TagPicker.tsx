@@ -206,9 +206,19 @@ export function TagPicker({
     useSensor(KeyboardSensor, { coordinateGetter: listOrderCoordinates }),
   );
   const position = (id: unknown) => `position ${selected.indexOf(String(id)) + 1} of ${selected.length}`;
+  // dnd-kit also reports "over" for the tag's own spot right after pick-up, and again when nothing moved.
+  // Speaking those would cut off "Picked up…" mid-sentence, so only a real change of position is announced.
+  const lastOver = useRef<unknown>(null);
   const announcements: Announcements = {
-    onDragStart: ({ active }) => `Picked up ${labelFor(String(active.id))}, ${position(active.id)}.`,
-    onDragOver: ({ active, over }) => over ? `${labelFor(String(active.id))} is over ${position(over.id)}.` : undefined,
+    onDragStart: ({ active }) => {
+      lastOver.current = active.id;
+      return `Picked up ${labelFor(String(active.id))}, ${position(active.id)}.`;
+    },
+    onDragOver: ({ active, over }) => {
+      if (!over || over.id === lastOver.current) return undefined;
+      lastOver.current = over.id;
+      return `${labelFor(String(active.id))} is over ${position(over.id)}.`;
+    },
     onDragEnd: ({ active, over }) => over
       ? `${labelFor(String(active.id))} dropped at ${position(over.id)}.`
       : `${labelFor(String(active.id))} dropped.`,

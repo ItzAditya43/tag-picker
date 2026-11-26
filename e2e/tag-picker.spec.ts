@@ -7,6 +7,27 @@ const chips = (page: Page) => page.getByRole("button", { name: /^Remove / });
 /** The draggable part of a selected tag (the list under the box has a button with the same name). */
 const handle = (page: Page, name: string) => page.locator('[aria-roledescription="sortable"]', { hasText: new RegExp(`^${name}$`) });
 const notice = (page: Page) => page.getByTestId("notice");
+/** dnd-kit's own screen-reader region: "Picked up Figma, position 1 of 2." and so on. */
+const dragStatus = (page: Page) => page.locator('[id^="DndLiveRegion"]');
+/** Let the browser paint twice, so a keyboard move has been measured and applied. */
+const settle = (page: Page) =>
+  page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(r, 30)))));
+/**
+ * Move a tag with the keyboard the way a person does: Space, wait until it is picked up (dnd-kit only
+ * starts listening for arrows a moment later), the arrow keys, then Space to drop (or Escape to cancel).
+ */
+const keyboardMove = async (page: Page, name: string, keys: string[], finish: "Space" | "Escape" = "Space") => {
+  await handle(page, name).focus();
+  await page.keyboard.press("Space");
+  await expect(dragStatus(page)).toContainText(`Picked up ${name}`);
+  await settle(page);
+  for (const key of keys) {
+    await page.keyboard.press(key);
+    await settle(page);
+  }
+  await page.keyboard.press(finish);
+  await expect(dragStatus(page)).toContainText(finish === "Space" ? "dropped" : "Moving cancelled");
+};
 const chipNames = async (page: Page) =>
   (await chips(page).evaluateAll((els) => els.map((e) => e.getAttribute("aria-label")!.replace(/^Remove /, ""))));
 
@@ -63,10 +84,7 @@ test.describe("keyboard", () => {
   });
 
   test("a tag can be moved with the keyboard", async ({ page }) => {
-    await handle(page, "Figma").focus();
-    await page.keyboard.press("Space");
-    await page.keyboard.press("ArrowRight");
-    await page.keyboard.press("Space");
+    await keyboardMove(page, "Figma", ["ArrowRight"]);
     await expect.poll(() => chipNames(page)).toEqual(["React", "Figma"]);
   });
 
@@ -91,12 +109,7 @@ test.describe("keyboard", () => {
       await input(page).fill(tag);
       await input(page).press("Enter");
     }
-    const move = async (name: string, keys: string[]) => {
-      await handle(page, name).focus();
-      await page.keyboard.press("Space");
-      for (const key of keys) await page.keyboard.press(key);
-      await page.keyboard.press("Space");
-    };
+    const move = (name: string, keys: string[]) => keyboardMove(page, name, keys);
     await move("JavaScript", ["ArrowLeft", "ArrowLeft"]);
     await expect.poll(() => chipNames(page)).toEqual(
       ["JavaScript", "Figma", "React", "Information architecture", "Interaction design", "Usability testing", "Adobe Illustrator"]);
@@ -112,12 +125,9 @@ test.describe("keyboard", () => {
   });
 
   test("Escape cancels a keyboard move", async ({ page }) => {
-    await handle(page, "Figma").focus();
-    await page.keyboard.press("Space");
-    await page.keyboard.press("ArrowRight");
-    await page.keyboard.press("Escape");
+    await keyboardMove(page, "Figma", ["ArrowRight"], "Escape");
     await expect.poll(() => chipNames(page)).toEqual(["Figma", "React"]);
-    await expect(page.getByText("Moving cancelled. Figma stays at position 1 of 2.")).toBeAttached();
+    await expect(dragStatus(page)).toContainText("Moving cancelled. Figma stays at position 1 of 2.");
   });
 
   test("Escape clears the text, then closes", async ({ page }) => {
