@@ -1,11 +1,33 @@
 # Tag picker, round 2
 
-Round 1 ended with a "what I'd do with more time" list. This round builds every item on it. The round 1 note is at the
+Round 1 ended with a "what I'd do with more time" list. This round builds every item on it, tests each one, and fixes
+three accessibility bugs I found while doing it (two of them were already in round 1). The round 1 note is at the
 bottom, unchanged.
 
-Run it with `npm install` and `npm run dev`.
-- Unit tests: `npm test`.
-- Browser tests: `npx playwright install chromium` once, then `npm run test:e2e`.
+![30-second demo: typo correction, grouped results, pasting a list, drag and keyboard reordering, Undo, Sort A–Z](docs/demo.gif)
+
+| Round 1 promise | What I built | How it's checked |
+|---|---|---|
+| Tests | 50 unit tests for the logic, 21 browser tests (29 runs across desktop and phone), and a CI workflow | `npm test`, `npm run test:e2e` |
+| Drag to reorder | Mouse, touch and keyboard. Screen-reader announcements. Sort A–Z to go back, with Undo | Browser tests: mouse drag, keyboard moves across wrapped rows, Escape |
+| Grouping in search | "In the list", "More skills", "Did you mean", "New tag" | Unit tests and a browser test |
+| Typo matching | "javscript" + Enter adds JavaScript. Unfinished words work too ("javsc") | 15 unit tests, 2 browser tests |
+| Pasting a long list | Adds everything at once. "Added 5 · 1 didn't fit: Adobe Illustrator", with Undo | Unit tests and 2 browser tests |
+| Screen reader pass | axe scans of every main state, plus fixes for contrast, focus loss and keyboard moves | axe in the browser tests; VoiceOver/NVDA not done (see below) |
+
+## Review it in 5 minutes
+
+```
+npm install && npm run dev
+```
+1. Type **javscript** and press Enter: you get JavaScript, not a misspelt tag.
+2. Type **design**: the results come in groups.
+3. Copy `Figma, CSS, Interaction design, Information architecture, Adobe Illustrator, HTML, Usability testing` and paste
+   it into the box. You get one summary line and an Undo.
+4. Drag a tag to the front. Or Tab to a tag, press Space, use the arrow keys, then press Space again.
+5. Press Backspace twice on an empty box, then click Undo: the tag comes back in the same place.
+
+Tests: `npm test` (unit). `npx playwright install chromium` once, then `npm run test:e2e` (browser: desktop and phone).
 
 ## What I built
 
@@ -15,18 +37,20 @@ Run it with `npm install` and `npm run dev`.
   - word-order matching and ranking;
   - recommendations;
   - the new typo matching, grouping, paste parsing and reordering helpers.
-- `e2e/tag-picker.spec.ts`: Playwright tests that drive the real page, on a desktop and a phone (Pixel 7) profile. They
+- `e2e/tag-picker.spec.ts`: 21 Playwright tests that drive the real page, on a desktop and a phone (Pixel 7) profile (29 runs; keyboard and mouse tests are desktop-only). They
   cover:
   - arrow keys, Enter and Escape;
   - typo correction, and keeping a typo on purpose;
   - grouped results;
   - Backspace twice, then Undo;
   - paste summaries;
-  - drag with the mouse and with the keyboard;
+  - drag with the mouse and with the keyboard, including tags wrapped over several rows;
+  - focus staying inside the picker after removing or sorting;
   - Sort A–Z;
   - disabled tags at the limit;
   - touch target sizes and no horizontal scroll on a phone;
   - an axe accessibility scan in light mode, dark mode and with the dropdown open.
+- `.github/workflows/test.yml` runs the build and both test suites on every push.
 
 **2. Drag to reorder**
 - Selected tags now keep the order you choose. New tags go at the end, and the form value follows that order.
@@ -36,6 +60,10 @@ Run it with `npm install` and `npm run dev`.
   to get right by hand.
 - Each tag has two controls: its label is the drag handle, and the × is a separate button, so pressing Enter on × never
   starts a drag.
+- Keyboard moves go by list position: ← and ↑ move one place earlier, → and ↓ one place later. dnd-kit's default
+  picks the nearest tag on screen, and with tags of different widths on several rows, one ← jumped to the end of the
+  list. `src/lib/listKeyboard.ts` replaces it, and a browser test covers it.
+- Animations follow the system "reduce motion" setting.
 - Mouse dragging starts after 5px of movement, so a click is still a click. Touch dragging starts after a 200 ms press,
   so swiping still scrolls the page.
 - A "Sort A–Z" link brings back the old alphabetical order in one click, with Undo. It only shows when the list isn't
@@ -69,6 +97,8 @@ labelled `role="group"` inside the listbox, so screen readers announce the group
   tree.
 - It found one real problem, which was also in round 1: the blue text on light-blue chips was 3.8:1, below the 4.5:1
   AA minimum. I darkened the light-mode blue to `#245fd6` (4.8:1). Dark mode already passed.
+- It also showed that keyboard focus got lost: removing a tag with × (or using Sort A–Z) deleted the focused button, so
+  focus fell back to the top of the page. Now focus moves to the next tag's ×, or to the input.
 - Other fixes from this pass:
   - Options inside the dropdown are no longer separate Tab stops, matching the ARIA combobox pattern.
   - The input now reads out the character count.
